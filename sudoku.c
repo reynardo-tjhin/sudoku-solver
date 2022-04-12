@@ -6,46 +6,9 @@
 #define MAX_BUFFER 1000
 
 extern char *strsep(char **stringp, const char *delim);
-
-// free the sudoku that was malloc'ed
-void free_sudoku(sudoku_node** sudoku) {
-    for (int i = 0; i < 81; i++) {
-        sudoku_node* sudoku_node = sudoku[i];
-        free(sudoku_node->neighbours);
-        if (sudoku_node->possible_solutions != NULL) {
-            free(sudoku_node->possible_solutions);
-        }
-        free(sudoku_node);
-    }
-    free(sudoku);
-}
-
-// print the sudoku with the current solution
-void print_sudoku(sudoku_node** sudoku) {
-    sudoku_node* current_sudoku_node = sudoku[0];
-    while (current_sudoku_node != NULL) {
-        if ((current_sudoku_node->id + 1) % 9 == 0) {
-            printf("%d\n", current_sudoku_node->data);
-        } else {
-            printf("%d ", current_sudoku_node->data);
-        }
-        current_sudoku_node = current_sudoku_node->next;
-    }
-}
-
-void print_neighbour(sudoku_node** sudoku) {
-    for (int i = 0; i < 81; i++) {
-        sudoku_node* current_sudoku_node = sudoku[i];
-        printf("index %d: ", current_sudoku_node->id);
-        for (int j = 0; j < 20; j++) {
-            if (current_sudoku_node->neighbours[j] == NULL) {
-                break;
-            }
-            printf("%d ", current_sudoku_node->neighbours[j]->data);
-        }
-        printf("\n");
-    }
-}
+extern void free_sudoku(sudoku_node** sudoku);
+extern void print_sudoku(sudoku_node** sudoku);
+extern void print_neighbour(sudoku_node** sudoku);
 
 int main(int argc, char** argv) {
 
@@ -319,4 +282,45 @@ int main(int argc, char** argv) {
     free_sudoku(sudoku);
 
     return 0;
+}
+
+// free the sudoku that was malloc'ed
+void free_sudoku(sudoku_node** sudoku) {
+    for (int i = 0; i < 81; i++) {
+        sudoku_node* sudoku_node = sudoku[i];
+        free(sudoku_node->neighbours);
+        if (sudoku_node->possible_solutions != NULL) {
+            free(sudoku_node->possible_solutions);
+        }
+        free(sudoku_node);
+    }
+    free(sudoku);
+}
+
+// print the sudoku with the current solution
+void print_sudoku(sudoku_node** sudoku) {
+    sudoku_node* current_sudoku_node = sudoku[0];
+    while (current_sudoku_node != NULL) {
+        if ((current_sudoku_node->id + 1) % 9 == 0) {
+            printf("%d\n", current_sudoku_node->data);
+        } else {
+            printf("%d ", current_sudoku_node->data);
+        }
+        current_sudoku_node = current_sudoku_node->next;
+    }
+}
+
+// print the neighbour of each node
+void print_neighbour(sudoku_node** sudoku) {
+    for (int i = 0; i < 81; i++) {
+        sudoku_node* current_sudoku_node = sudoku[i];
+        printf("index %d: ", current_sudoku_node->id);
+        for (int j = 0; j < 20; j++) {
+            if (current_sudoku_node->neighbours[j] == NULL) {
+                break;
+            }
+            printf("%d ", current_sudoku_node->neighbours[j]->data);
+        }
+        printf("\n");
+    }
 }
