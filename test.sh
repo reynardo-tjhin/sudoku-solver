@@ -11,6 +11,8 @@ touch temp.out
 # run the sudoku
 ./sudoku ./tests/sudoku1.in > temp.out
 
+cat temp.out
+
 # get the difference
 DIFF=$(diff -q temp.out ./tests/sudoku1.out)
 

@@ -24,7 +24,7 @@ struct sudoku_node {
     int possible_solution[9];
 
     // there are 20 neighbours for each node
-    sudoku_node* neighbours;
+    sudoku_node** neighbours;
 };
 
 #endif
