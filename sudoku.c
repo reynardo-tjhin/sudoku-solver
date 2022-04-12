@@ -10,9 +10,39 @@ extern char *strsep(char **stringp, const char *delim);
 void free_sudoku(sudoku_node** sudoku) {
     for (int i = 0; i < 81; i++) {
         sudoku_node* sudoku_node = sudoku[i];
+        free(sudoku_node->neighbours);
+        if (sudoku_node->possible_solutions != NULL) {
+            free(sudoku_node->possible_solutions);
+        }
         free(sudoku_node);
     }
     free(sudoku);
+}
+
+void print_sudoku(sudoku_node** sudoku) {
+    sudoku_node* current_sudoku_node = sudoku[0];
+    while (current_sudoku_node != NULL) {
+        if ((current_sudoku_node->id + 1) % 9 == 0) {
+            printf("%d\n", current_sudoku_node->data);
+        } else {
+            printf("%d ", current_sudoku_node->data);
+        }
+        current_sudoku_node = current_sudoku_node->next;
+    }
+}
+
+void print_neighbour(sudoku_node** sudoku) {
+    for (int i = 0; i < 81; i++) {
+        sudoku_node* current_sudoku_node = sudoku[i];
+        printf("index %d: ", current_sudoku_node->id);
+        for (int j = 0; j < 20; j++) {
+            if (current_sudoku_node->neighbours[j] == NULL) {
+                break;
+            }
+            printf("%d ", current_sudoku_node->neighbours[j]->data);
+        }
+        printf("\n");
+    }
 }
 
 int main(int argc, char** argv) {
@@ -72,23 +102,27 @@ int main(int argc, char** argv) {
             }
 
             // create the sudoku node here
-            sudoku_node* sudoku_node = (struct sudoku_node *) malloc(sizeof(struct sudoku_node));
-            sudoku_node->id = id;
-            sudoku_node->data = data;
+            sudoku_node* new_sudoku_node = (struct sudoku_node *) malloc(sizeof(sudoku_node));
+            new_sudoku_node->id = id;
+            new_sudoku_node->data = data;
             if (data != 0) { // means the node is already solved
-                sudoku_node->is_solved = 1;
+                new_sudoku_node->is_solved = 1;
+                // initialize the possible solutions as NULL since it is already solved
+                new_sudoku_node->possible_solutions = NULL;
             } else {
-                sudoku_node->is_solved = 0;
+                new_sudoku_node->is_solved = 0;
+                // initialize the possible solutions
+                new_sudoku_node->possible_solutions = (int *) calloc(9, sizeof(int));
+                for (int i = 1; i < 10; i++) {
+                    new_sudoku_node->possible_solutions[i - 1] = i;
+                }
             }
-            printf("%d ", data);
 
             // store the sudoku address to the sudoku (array)
-            sudoku[id] = sudoku_node;
+            sudoku[id] = new_sudoku_node;
 
             id += 1;
         }
-        printf("\n");
-
         free(duplicate_buffer);
     }
 
@@ -113,16 +147,164 @@ int main(int argc, char** argv) {
         }
 
         // update the neighbour of the sudoku
-        // horizontal, vertical, box
-        // for example, the id: 0, neighbours: [1 to 8], [9, 18, 27, ..., 72], [1, 2, ]
+        sudoku_node** neighbours = (struct sudoku_node **) malloc(sizeof(sudoku_node) * NUMBER_OF_NEIGHBOURS);
+        int index = 0; // to keep track for the neighbours
+        
+        // add in the horizontal
+        int start = (current_sudoku_node->id / 9) * 9;
+        for (int j = 0; j < 9; j++) {
+            // ignore its own id
+            if (current_sudoku_node->id == j + start) {
+                continue;
+            }
+            // add others
+            neighbours[index] = sudoku[start + j];
+            index += 1;
+        }
 
+        // add in the vertical
+        start = current_sudoku_node->id % 9;
+        for (int j = 0; j < 9; j++) {
+            // ignore its own id
+            if (current_sudoku_node->id == j * 9 + start) {
+                continue;
+            }
+            // add others
+            neighbours[index] = sudoku[j * 9 + start];
+            index += 1;
+        }
+
+        // add in the box
+        int i = current_sudoku_node->id % 9; // x-axis
+        int j = current_sudoku_node->id / 9; // y-axis
+        int start_x_axis = (i / 3) * 3; // the x-corrdinate of start of the box
+        int start_y_axis = (j / 3) * 3; // the y-coordinate of start of the box
+        int x_axis = start_x_axis; // x-axis to be incremented
+        for (int j = 0; j < 9; j++) {
+
+            if (j % 3 == 0 && j != 0) {
+                start_y_axis += 1;
+            }
+            x_axis = start_x_axis + (j % 3);
+            int id = start_y_axis * 9 + x_axis;
+
+            // ignore its own id
+            if (id == current_sudoku_node->id) {
+                continue;
+            }
+            // check whether the id has already been added
+            int is_already_added = 0;
+            for (int k = 0; k < index; k++) {
+                if (neighbours[k] == NULL) {
+                    break;
+                }
+                if (neighbours[k]->id == id) {
+                    is_already_added = 1; break;
+                }
+            }
+            // add if it has not existed
+            if (!is_already_added) {
+                neighbours[index] = sudoku[id];
+                index += 1;
+            }
+        }
+        // assign the neighbour attribute
+        current_sudoku_node->neighbours = neighbours;
+    }
+    
+    // find the solution
+    int has_backtrack = 0;
+    sudoku_node* current_sudoku_node = sudoku[0];
+    while (current_sudoku_node != NULL) {
+        
+        // already solved => move on to the next node if backtrack flag is not set
+        if (current_sudoku_node->is_solved && !has_backtrack) {
+            current_sudoku_node = current_sudoku_node->next;
+            continue;
+        }
+        // already solved and backtrack flag is set => move to the previous node
+        else if (current_sudoku_node->is_solved && has_backtrack) {
+            current_sudoku_node = current_sudoku_node->prev;
+            continue;
+        }
+
+        // backtrack flag is set => get the most recent data
+        if (has_backtrack) {
+
+            // reset the backtrack flag
+            has_backtrack = 0;
+
+            // get the most recent data
+            int i = 0;
+            for (i = 0; i < 9; i++) {
+                if (current_sudoku_node->possible_solutions[i] != 0) {
+                    int data = current_sudoku_node->possible_solutions[i];
+                    current_sudoku_node->data = data;
+                    // remove the found index
+                    current_sudoku_node->possible_solutions[i] = 0;
+                    break;
+                }
+            }
+
+            // check if need to backtrack again
+            if (i == 9) {
+                has_backtrack = 1;
+                // reset the possible solutions
+                for (int j = 1; j < 10; j++) {
+                    current_sudoku_node->possible_solutions[j - 1] = j;
+                }
+                current_sudoku_node = current_sudoku_node->prev;
+            }
+            else {
+                // printf("id: %d, data: %d\n", current_sudoku_node->id, current_sudoku_node->data);
+                current_sudoku_node = current_sudoku_node->next;
+            }
+        }
+        else {
+            // get the possible solutions
+            for (int i = 0; i < 20; i++) {
+                // get its neighbour's data
+                int data = current_sudoku_node->neighbours[i]->data;
+                if (data != 0) {
+                    // reset the data in the possible solutions to 0
+                    current_sudoku_node->possible_solutions[data - 1] = 0;
+                }
+            }
+
+            // get the most recent data
+            int i = 0;
+            for (i = 0; i < 9; i++) {
+                if (current_sudoku_node->possible_solutions[i] != 0) {
+                    int data = current_sudoku_node->possible_solutions[i];
+                    current_sudoku_node->data = data;
+                    // remove the the very first index
+                    current_sudoku_node->possible_solutions[i] = 0;
+                    break;
+                }
+            }
+            
+            // check if need to backtrack again
+            if (i == 9) {
+                has_backtrack = 1;
+                // reset the possible solutions
+                for (int j = 1; j < 10; j++) {
+                    current_sudoku_node->possible_solutions[j - 1] = j;
+                }
+                current_sudoku_node = current_sudoku_node->prev;
+            }
+            else {
+                // printf("id: %d, data: %d\n", current_sudoku_node->id, current_sudoku_node->data);
+                current_sudoku_node = current_sudoku_node->next;
+            }
+        }
     }
 
-    // find the solution
-    
-
-    // temporary print
-    printf("sudoku.c: Success!\n");
+    if (current_sudoku_node == sudoku[0]) {
+        printf("program can't solve! author is dumb!\n");
+    }
+    else {
+        print_sudoku(sudoku);
+    }
 
     free_sudoku(sudoku);
 
