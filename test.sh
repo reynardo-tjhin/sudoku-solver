@@ -8,19 +8,19 @@ gcc -fsanitize=address,leak -Wall -Werror sudoku.c -o sudoku
 # create a temporary file to store the result
 touch temp.out
 
-START=$(date +%s)
+START=$(date +%s.%N)
 
 # run the sudoku
-./sudoku ./tests/sudoku1.in > temp.out
+./sudoku ./tests/sudoku4.in > temp.out
 
-END=$(date +%s)
+END=$(date +%s.%N)
 
-printf "Time taken: $((START - END))s\n"
+printf "Time taken: $( echo "$END - $START" | bc -l )s\n"
 
 cat temp.out
 
 # get the difference
-DIFF=$(diff -q temp.out ./tests/sudoku1.out)
+DIFF=$(diff temp.out ./tests/sudoku4.out)
 
 # print the result
 if [ -z "$DIFF" ]
