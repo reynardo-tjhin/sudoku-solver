@@ -2,3 +2,4 @@ test.c
 test
 sudoku
 normal_compile.sh
+temp_history.out

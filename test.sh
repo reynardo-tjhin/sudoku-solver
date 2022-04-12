@@ -11,7 +11,7 @@ touch temp.out
 START=$(date +%s)
 
 # run the sudoku
-./sudoku ./tests/sudoku1.in  > temp.out
+./sudoku ./tests/sudoku1.in > temp.out
 
 END=$(date +%s)
 

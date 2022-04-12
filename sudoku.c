@@ -7,6 +7,7 @@
 
 extern char *strsep(char **stringp, const char *delim);
 
+// free the sudoku that was malloc'ed
 void free_sudoku(sudoku_node** sudoku) {
     for (int i = 0; i < 81; i++) {
         sudoku_node* sudoku_node = sudoku[i];
@@ -19,6 +20,7 @@ void free_sudoku(sudoku_node** sudoku) {
     free(sudoku);
 }
 
+// print the sudoku with the current solution
 void print_sudoku(sudoku_node** sudoku) {
     sudoku_node* current_sudoku_node = sudoku[0];
     while (current_sudoku_node != NULL) {
@@ -213,6 +215,7 @@ int main(int argc, char** argv) {
     }
     
     // find the solution
+    int no_solution = 0;
     int has_backtrack = 0;
     sudoku_node* current_sudoku_node = sudoku[0];
     while (current_sudoku_node != NULL) {
@@ -249,14 +252,19 @@ int main(int argc, char** argv) {
             // check if need to backtrack again
             if (i == 9) {
                 has_backtrack = 1;
+                // reset the data
+                current_sudoku_node->data = 0;
                 // reset the possible solutions
                 for (int j = 1; j < 10; j++) {
                     current_sudoku_node->possible_solutions[j - 1] = j;
                 }
                 current_sudoku_node = current_sudoku_node->prev;
+                if (current_sudoku_node == NULL) {
+                    no_solution = 1;
+                    printf("program can't solve! author is dumb!\n");
+                }
             }
             else {
-                // printf("id: %d, data: %d\n", current_sudoku_node->id, current_sudoku_node->data);
                 current_sudoku_node = current_sudoku_node->next;
             }
         }
@@ -286,23 +294,25 @@ int main(int argc, char** argv) {
             // check if need to backtrack again
             if (i == 9) {
                 has_backtrack = 1;
+                // reset the data
+                current_sudoku_node->data = 0;
                 // reset the possible solutions
                 for (int j = 1; j < 10; j++) {
                     current_sudoku_node->possible_solutions[j - 1] = j;
                 }
                 current_sudoku_node = current_sudoku_node->prev;
+                if (current_sudoku_node == NULL) {
+                    no_solution = 1;
+                    printf("program can't solve! author is dumb!\n");
+                }
             }
             else {
-                // printf("id: %d, data: %d\n", current_sudoku_node->id, current_sudoku_node->data);
                 current_sudoku_node = current_sudoku_node->next;
             }
         }
     }
 
-    if (current_sudoku_node == sudoku[0]) {
-        printf("program can't solve! author is dumb!\n");
-    }
-    else {
+    if (!no_solution) {
         print_sudoku(sudoku);
     }
 
